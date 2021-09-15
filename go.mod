@@ -1,4 +1,4 @@
-module wallet
+module github.com/rustamfozilov/wallet
 
 go 1.17
 

@@ -13,7 +13,7 @@ const (
 )
 
 type Payment struct {
-	ID       int
+	ID       string
 	AccountID int64
 	Amount   Money
 	Category PaymentCategory

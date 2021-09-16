@@ -3,6 +3,7 @@ package wallet
 import (
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/rustamfozilov/wallet/pkg/types"
 	"log"
 )
@@ -89,4 +90,15 @@ func (s *Service) FindPaymentByID(paymentID string) (*types.Payment, error) {
 		}
 	}
 	return nil, ErrPaymentNotFound
+}
+
+func (s *Service) Pay(accountID int64, amount types.Money, category types.PaymentCategory) (*types.Payment, error) {
+	payment := &types.Payment{
+		ID:        uuid.New().String(),
+		AccountID: accountID,
+		Amount:    amount,
+		Category:  category,
+		Status:    types.PaymentStatusInProgress,
+	}
+	return payment, nil
 }

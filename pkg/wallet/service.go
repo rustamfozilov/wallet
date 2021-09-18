@@ -119,3 +119,18 @@ func (s Service) Reject(paymentID string) error {
 	account.Balance += payment.Amount
 	return nil
 }
+
+func (s *Service) Repeat(paymentID string) (*types.Payment,error) {
+	payment, err := s.FindPaymentByID(paymentID)
+	if err != nil {
+		return nil, err
+	}
+var repeatedPayment = types.Payment{
+	ID:        uuid.New().String(),
+	AccountID: payment.AccountID,
+	Amount:    payment.Amount,
+	Category:  payment.Category,
+	Status:    payment.Status,
+}
+return &repeatedPayment, nil
+}

@@ -366,3 +366,38 @@ func TestService_FindPaymentByID_fail(t *testing.T) {
 		t.Errorf("ne pechataet")
 	}
 }
+
+func TestService_Repeat_success(t *testing.T) {
+	s := newTestService()
+
+	_, payments, err := s.addAccount(defaultAccount)
+	if err != nil {
+		t.Error(err)
+	}
+	payment := payments[0]
+	repeatedPayment, err := s.Repeat(payment.ID)
+	if err != nil {
+		t.Error(err)
+	}
+	if reflect.DeepEqual(payment,repeatedPayment) {
+			t.Errorf("not change paimentID payment : %v, repeated paymentID %v",payment.ID, repeatedPayment.ID)}
+
+}
+
+func TestService_Repeat_fail(t *testing.T) {
+	s := newTestService()
+
+	_, _, err := s.addAccount(defaultAccount)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = s.Repeat(uuid.New().String())
+	if err == nil {
+		t.Errorf("FindPaymentByID() : must return error returned nil ")
+		return
+	}
+	if err != ErrPaymentNotFound {
+		t.Errorf("ne pechataet")
+	}
+}

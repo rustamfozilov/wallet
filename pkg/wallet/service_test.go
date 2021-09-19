@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/rustamfozilov/wallet/pkg/types"
+	"log"
 	"reflect"
 	"testing"
 )
@@ -382,6 +383,7 @@ func TestService_Repeat_success(t *testing.T) {
 	if reflect.DeepEqual(payment,repeatedPayment) {
 			t.Errorf("not change paimentID payment : %v, repeated paymentID %v",payment.ID, repeatedPayment.ID)}
 
+log.Println(*payment, *repeatedPayment)
 }
 
 func TestService_Repeat_fail(t *testing.T) {
@@ -400,4 +402,58 @@ func TestService_Repeat_fail(t *testing.T) {
 	if err != ErrPaymentNotFound {
 		t.Errorf("ne pechataet")
 	}
+
+}
+
+func TestService_FavoritePayment_success(t *testing.T) {
+	s := newTestService()
+
+	_, payments, err := s.addAccount(defaultAccount)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payment := payments[0]
+	var  testFavitePayment = types.Favorite{
+		ID:        payment.ID,
+		AccountID: payment.AccountID,
+		Name:      "Hahah",
+		Amount:    payment.Amount,
+		Category:  payment.Category,
+	}
+
+	got, err := s.FavoritePayment(payment.ID, "Hahah")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(testFavitePayment, *got) {
+		t.Errorf("invalid made favorite payment want: %v, got: %v", testFavitePayment,got)
+	}
+}
+
+func TestService_PayFromFavorite_success(t *testing.T) {
+	s := newTestService()
+
+	_, payments, err := s.addAccount(defaultAccount)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payment := payments[0]
+	var  testPayment = types.Payment{
+		ID:        payment.ID,
+		AccountID: payment.AccountID,
+		Amount:    payment.Amount,
+		Category:  payment.Category,
+	}
+
+	_, err = s.FavoritePayment(payment.ID, "Hahah")
+	if err != nil {
+		t.Fatal(err)
+	}
+	payFromFavorite, err := s.PayFromFavorite(payment.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+if testPayment.ID == payFromFavorite.ID {
+	t.Fatal("id not changed/ want:",testPayment.ID,"got :", payFromFavorite.ID)
+}
 }

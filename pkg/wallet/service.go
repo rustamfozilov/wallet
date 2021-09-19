@@ -102,6 +102,12 @@ func (s *Service) Pay(accountID int64, amount types.Money, category types.Paymen
 		Category:  category,
 		Status:    types.PaymentStatusInProgress,
 	}
+	// to do acc
+	account, err := s.FindAccountByID(payment.AccountID)
+	if err != nil {
+		return nil, err
+	}
+	account.Balance = account.Balance-payment.Amount
 	s.payments = append(s.payments, payment)
 	return payment, nil
 }
@@ -125,6 +131,10 @@ func (s *Service) Repeat(paymentID string) (*types.Payment,error) {
 	if err != nil {
 		return nil, err
 	}
+	account, err := s.FindAccountByID(payment.AccountID)
+	if err != nil {
+		return nil, err
+	}
 var repeatedPayment = types.Payment{
 	ID:        uuid.New().String(),
 	AccountID: payment.AccountID,
@@ -132,5 +142,8 @@ var repeatedPayment = types.Payment{
 	Category:  payment.Category,
 	Status:    payment.Status,
 }
-return &repeatedPayment, nil
+//log.Println("reapetedPayment",repeatedPayment)
+s.payments = append(s.payments, &repeatedPayment)
+	account.Balance = account.Balance-payment.Amount
+	return &repeatedPayment, nil
 }

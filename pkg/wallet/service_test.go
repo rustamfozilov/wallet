@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/rustamfozilov/wallet/pkg/types"
+	"log"
 	"reflect"
 	"testing"
 )
@@ -382,6 +383,7 @@ func TestService_Repeat_success(t *testing.T) {
 	if reflect.DeepEqual(payment,repeatedPayment) {
 			t.Errorf("not change paimentID payment : %v, repeated paymentID %v",payment.ID, repeatedPayment.ID)}
 
+log.Println(*payment, *repeatedPayment)
 }
 
 func TestService_Repeat_fail(t *testing.T) {
@@ -400,4 +402,5 @@ func TestService_Repeat_fail(t *testing.T) {
 	if err != ErrPaymentNotFound {
 		t.Errorf("ne pechataet")
 	}
+
 }

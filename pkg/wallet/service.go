@@ -4,6 +4,9 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"github.com/rustamfozilov/wallet/pkg/types"
+	"log"
+	"os"
+	"strconv"
 )
 
 var ErrAccountNotFound = errors.New("account not found")
@@ -150,13 +153,19 @@ func (s *Service) Repeat(paymentID string) (*types.Payment, error) {
 	return &repeatedPayment, nil
 }
 
-func (s *Service) FavoritePayment(paymentID string, name string) (*types.Favorite, error)  {
+func (s *Service) FavoritePayment(paymentID string, name string) (*types.Favorite, error) {
 	payment, err := s.FindPaymentByID(paymentID)
 	if err != nil {
 		return nil, ErrPaymentNotFound
 	}
+	//log.Print("[")
+	//for _, payment := range s.payments {
+	//	log.Print(*payment)
+	//}
+	//log.Println("]")
+	//log.Println("paymentID:", paymentID)
 	var favorite = types.Favorite{
-		ID:        payment.ID,
+		ID:        uuid.New().String(),
 		AccountID: payment.AccountID,
 		Name:      name,
 		Amount:    payment.Amount,
@@ -166,28 +175,44 @@ func (s *Service) FavoritePayment(paymentID string, name string) (*types.Favorit
 	return &favorite, nil
 }
 
-func (s *Service) PayFromFavorite(favoriteID string) (*types.Payment, error)  {
-	var targetFavorite *types.Favorite
-	for _, favorite := range s.favorites {
-		if favorite.ID== favoriteID{
-		targetFavorite = favorite
-		break
-		}
-		return nil, ErrFavoriteNotFound
-	}
-	payment := &types.Payment{
-		ID:        uuid.New().String(),
-		AccountID: targetFavorite.AccountID,
-		Amount:    targetFavorite.Amount,
-		Category:  targetFavorite.Category,
-		Status:    types.PaymentStatusInProgress,
-	}
-	// to do acc
-	account, err := s.FindAccountByID(payment.AccountID)
+func (s *Service) PayFromFavorite(favoriteID string) (*types.Payment, error) {
+
+	favorite, err := s.FindFavoriteByID(favoriteID)
 	if err != nil {
 		return nil, err
 	}
-	account.Balance = account.Balance - payment.Amount
-	s.payments = append(s.payments, payment)
-	return payment, nil
+	return s.Pay(favorite.AccountID, favorite.Amount, favorite.Category)
+}
+
+func (s *
+Service) FindFavoriteByID(favoriteID string) (*types.Favorite, error) {
+
+	for _, favorite := range s.favorites {
+		if favorite.ID == favoriteID {
+			return favorite, nil
+		}
+	}
+	return nil, ErrFavoriteNotFound
+}
+
+func (s *Service) ExportToFile(path string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
+
+	for _, account := range s.accounts {
+		line := strconv.FormatInt(account.ID, 10) + ";" + string(account.Phone) + ";" + strconv.FormatInt(int64(account.Ba
+		lance), 10) + "|"
+		_, err = file.Write([]byte(line))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -414,7 +414,7 @@ func TestService_FavoritePayment_success(t *testing.T) {
 	}
 	payment := payments[0]
 	var  testFavitePayment = types.Favorite{
-		ID:        payment.ID,
+		ID:        "e6b3cf42-3deb-429b-978c-e93165707148",
 		AccountID: payment.AccountID,
 		Name:      "Hahah",
 		Amount:    payment.Amount,
@@ -425,7 +425,7 @@ func TestService_FavoritePayment_success(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(testFavitePayment, *got) {
+	if testFavitePayment.ID == got.ID {
 		t.Errorf("invalid made favorite payment want: %v, got: %v", testFavitePayment,got)
 	}
 }
@@ -445,11 +445,11 @@ func TestService_PayFromFavorite_success(t *testing.T) {
 		Category:  payment.Category,
 	}
 
-	_, err = s.FavoritePayment(payment.ID, "Hahah")
+	fav, err := s.FavoritePayment(payment.ID, "Hahah")
 	if err != nil {
 		t.Fatal(err)
 	}
-	payFromFavorite, err := s.PayFromFavorite(payment.ID)
+	payFromFavorite, err := s.PayFromFavorite(fav.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

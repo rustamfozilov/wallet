@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 )
 
 var ErrAccountNotFound = errors.New("account not found")
@@ -227,17 +228,49 @@ func (s *Service) ImportFromFile(path string) error {
 			log.Println(err)
 		}
 	}()
-	accounts := make([]byte, 0)
-	buf := make([]byte,4096)
-	for  {
-		read, err := file.Read(buf)
-		if err == io.EOF {
-			accounts = append(accounts, buf[:read]...)
-			return nil
-		}
+	accounts, err2 := readAll(file)
+	if err2 != nil {
+		return err2
+	}
+	lines := strings.Split(string(accounts), "|")
+	for _, line := range lines {
+		fields := strings.Split(line, ";")
+		idString := fields[0]
+		id, err := strconv.ParseInt(idString, 10, 64)
+
 		if err != nil {
 			return err
 		}
-			accounts = append(accounts, buf[:read]...)
+
+		balanceString := fields[1]
+		balance, err := strconv.ParseInt(balanceString, 10, 64)
+		if err != nil {
+			return err
+		}
+		var acc = types.Account{
+			ID:id,
+			Phone:   types.Phone(fields[1]),
+			Balance: types.Money(balance),
+		}
+		s.accounts = append(s.accounts, &acc)
 	}
+	return nil
+}
+
+
+func readAll(reader io.Reader) ([]byte, error) {
+	accounts := make([]byte, 0)
+	buf := make([]byte, 4096)
+	for {
+		read, err := reader.Read(buf)
+		if err == io.EOF {
+			accounts = append(accounts, buf[:read]...)
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		accounts = append(accounts, buf[:read]...)
+	}
+	return accounts, nil
 }

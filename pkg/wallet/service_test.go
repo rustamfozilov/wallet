@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/rustamfozilov/wallet/pkg/types"
@@ -456,4 +457,28 @@ func TestService_PayFromFavorite_success(t *testing.T) {
 if testPayment.ID == payFromFavorite.ID {
 	t.Fatal("id not changed/ want:",testPayment.ID,"got :", payFromFavorite.ID)
 }
+}
+
+func Test_readFromFileInSliceByte(t *testing.T) {
+	var b bytes.Buffer
+	s := "hello world"
+	b.WriteString(s)
+	a, err := readAll(&b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s != string(a) {
+		t.Fatal(s, string(a))
+	}
+	b.Reset()
+
+	s = ""
+	b.WriteString(s)
+	a, err = readAll(&b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s != string(a) {
+		t.Fatal(s, string(a))
+	}
 }

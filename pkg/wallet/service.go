@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"github.com/rustamfozilov/wallet/pkg/types"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -207,12 +208,36 @@ func (s *Service) ExportToFile(path string) error {
 	}()
 
 	for _, account := range s.accounts {
-		line := strconv.FormatInt(account.ID, 10) + ";" + string(account.Phone) + ";" + strconv.FormatInt(int64(account.Ba
-		lance), 10) + "|"
+		line := strconv.FormatInt(account.ID, 10) + ";" + string(account.Phone) + ";" + strconv.FormatInt(int64(account.Balance), 10) + "|"
 		_, err = file.Write([]byte(line))
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (s *Service) ImportFromFile(path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
+	accounts := make([]byte, 0)
+	buf := make([]byte,4096)
+	for  {
+		read, err := file.Read(buf)
+		if err == io.EOF {
+			accounts = append(accounts, buf[:read]...)
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+			accounts = append(accounts, buf[:read]...)
+	}
 }

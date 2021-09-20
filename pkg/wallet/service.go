@@ -5,8 +5,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/rustamfozilov/wallet/pkg/types"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 )
@@ -233,30 +235,35 @@ func (s *Service) ImportFromFile(path string) error {
 		return err2
 	}
 	lines := strings.Split(string(accounts), "|")
+	if len(lines) == 0 {
+		return err
+	}
+	lines = lines[:len(lines)-1]
+	log.Println(lines)
 	for _, line := range lines {
+
 		fields := strings.Split(line, ";")
+		log.Println(fields)
 		idString := fields[0]
 		id, err := strconv.ParseInt(idString, 10, 64)
-
 		if err != nil {
 			return err
 		}
-
-		balanceString := fields[1]
+		phone := types.Phone(fields[1])
+		balanceString := fields[2]
 		balance, err := strconv.ParseInt(balanceString, 10, 64)
 		if err != nil {
 			return err
 		}
 		var acc = types.Account{
-			ID:id,
-			Phone:   types.Phone(fields[1]),
+			ID:      id,
+			Phone:   phone,
 			Balance: types.Money(balance),
 		}
 		s.accounts = append(s.accounts, &acc)
 	}
 	return nil
 }
-
 
 func readAll(reader io.Reader) ([]byte, error) {
 	accounts := make([]byte, 0)
@@ -273,4 +280,67 @@ func readAll(reader io.Reader) ([]byte, error) {
 		accounts = append(accounts, buf[:read]...)
 	}
 	return accounts, nil
+}
+
+func (s *Service) Export(dir string) error {
+	err := exportAccounts(dir, s)
+	if err != nil {
+		return err
+	}
+	err = exportPayments(dir, s)
+	if err != nil {
+		return err
+	}
+	return exportFavorites(dir, s)
+}
+
+func exportFavorites(dir string, s *Service) error {
+	if len(s.favorites) == 0 {
+		return nil
+	}
+	var line string
+	for _, favorite := range s.favorites {
+		line += favorite.ID + "|" + strconv.FormatInt(int64(favorite.AccountID), 10) + "|" +
+			favorite.Name + "|" + strconv.FormatInt(int64(favorite.Amount), 10) +
+			"|" + string(favorite.Category) + "\n"
+	}
+	err := ioutil.WriteFile(path.Join(dir, "favorites.dump"), []byte(line), 0666)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func exportPayments(dir string, s *Service) error {
+	if len(s.payments) == 0 {
+		return nil
+	}
+	var line string
+	for _, payment := range s.payments {
+		line += payment.ID + "|" + strconv.FormatInt(int64(payment.AccountID), 10) + "|" +
+			strconv.FormatInt(int64(payment.Amount), 10) + "|" + string(payment.Category) + "|" +
+			string(payment.Status) + "/n"
+	}
+	err := ioutil.WriteFile(path.Join(dir, "payments.dump"), []byte(line), 0666)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func exportAccounts(dir string, s *Service) error {
+	if len(s.accounts) == 0 {
+		return nil
+	}
+	var line string
+	for _, account := range s.accounts {
+		line += strconv.FormatInt(account.ID, 10) + "|" + string(account.Phone) +
+			"|" + strconv.FormatInt(int64(account.Balance), 10) + "\n"
+	}
+
+	err := ioutil.WriteFile(path.Join(dir, "accounts.dump"), []byte(line), 0666)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/rustamfozilov/wallet/pkg/types"
 	"log"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -113,14 +114,14 @@ func TestServiceS_reject_success(t *testing.T) {
 		t.Error(err)
 	}
 
-	wantPayment:= types.Payment{
+	wantPayment := types.Payment{
 		ID:        "123",
 		AccountID: 2,
 		Amount:    20,
 		Category:  "",
 		Status:    types.PaymentStatusFail,
 	}
-	if !reflect.DeepEqual(*payment,wantPayment) {
+	if !reflect.DeepEqual(*payment, wantPayment) {
 		t.Errorf("invalid changed payment: %v, want : %v ", payment, wantPayment)
 	}
 
@@ -133,7 +134,7 @@ func TestServiceS_reject_success(t *testing.T) {
 		Phone:   "321",
 		Balance: 30,
 	}
-	if !reflect.DeepEqual(*account,wantAccount) {
+	if !reflect.DeepEqual(*account, wantAccount) {
 		t.Errorf("invalid changed account: %v, want : %v ", *account, wantAccount)
 	}
 }
@@ -175,9 +176,6 @@ func TestServiceS_reject_fail(t *testing.T) {
 	if err != ErrPaymentNotFound {
 		t.Error(err)
 	}
-
-
-
 
 }
 
@@ -358,7 +356,6 @@ func TestService_FindPaymentByID_fail(t *testing.T) {
 		t.Fatal(err)
 	}
 
-
 	_, err = s.FindPaymentByID(uuid.New().String())
 	if err == nil {
 		t.Errorf("FindPaymentByID() : must return error returned nil ")
@@ -381,10 +378,11 @@ func TestService_Repeat_success(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if reflect.DeepEqual(payment,repeatedPayment) {
-			t.Errorf("not change paimentID payment : %v, repeated paymentID %v",payment.ID, repeatedPayment.ID)}
+	if reflect.DeepEqual(payment, repeatedPayment) {
+		t.Errorf("not change paimentID payment : %v, repeated paymentID %v", payment.ID, repeatedPayment.ID)
+	}
 
-log.Println(*payment, *repeatedPayment)
+	log.Println(*payment, *repeatedPayment)
 }
 
 func TestService_Repeat_fail(t *testing.T) {
@@ -414,7 +412,7 @@ func TestService_FavoritePayment_success(t *testing.T) {
 		t.Fatal(err)
 	}
 	payment := payments[0]
-	var  testFavitePayment = types.Favorite{
+	var testFavitePayment = types.Favorite{
 		ID:        "e6b3cf42-3deb-429b-978c-e93165707148",
 		AccountID: payment.AccountID,
 		Name:      "Hahah",
@@ -427,7 +425,7 @@ func TestService_FavoritePayment_success(t *testing.T) {
 		t.Fatal(err)
 	}
 	if testFavitePayment.ID == got.ID {
-		t.Errorf("invalid made favorite payment want: %v, got: %v", testFavitePayment,got)
+		t.Errorf("invalid made favorite payment want: %v, got: %v", testFavitePayment, got)
 	}
 }
 
@@ -439,7 +437,7 @@ func TestService_PayFromFavorite_success(t *testing.T) {
 		t.Fatal(err)
 	}
 	payment := payments[0]
-	var  testPayment = types.Payment{
+	var testPayment = types.Payment{
 		ID:        payment.ID,
 		AccountID: payment.AccountID,
 		Amount:    payment.Amount,
@@ -454,9 +452,15 @@ func TestService_PayFromFavorite_success(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-if testPayment.ID == payFromFavorite.ID {
-	t.Fatal("id not changed/ want:",testPayment.ID,"got :", payFromFavorite.ID)
+	if testPayment.ID == payFromFavorite.ID {
+		t.Fatal("id not changed/ want:", testPayment.ID, "got :", payFromFavorite.ID)
+	}
 }
+
+func TestTt(t *testing.T) {
+	split := strings.Split("a,b,c,", ",")
+	t.Log(split)
+	t.Log(len(split))
 }
 
 func Test_readFromFileInSliceByte(t *testing.T) {

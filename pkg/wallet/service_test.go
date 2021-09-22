@@ -7,6 +7,7 @@ import (
 	"github.com/rustamfozilov/wallet/pkg/types"
 	"log"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -484,5 +485,45 @@ func Test_readFromFileInSliceByte(t *testing.T) {
 	}
 	if s != string(a) {
 		t.Fatal(s, string(a))
+	}
+}
+
+func Test_creatingLine(t *testing.T) {
+	 var line string
+	 a := &types.Payment{
+		 ID:        "a",
+		 AccountID: 2,
+		 Amount:    200,
+		 Category:  "b",
+		 Status:    "s",
+	 }
+	got := creatingLine(line, a)
+	want := "a|2|200|b|s\n"
+	if got !=want{
+		t.Fatal(got, want)
+	}
+
+
+	for numberFile := 1; numberFile <= 3 ; numberFile++ {
+		filename := "payments" + strconv.Itoa(numberFile) + ".dump"
+		log.Println(filename)
+	}
+}
+func TestService_HistoryToFiles(t *testing.T) {
+	var s Service
+	err := s.HistoryToFiles([]types.Payment{
+		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 1, 100000, "auto", "INPROGRESS"},
+		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 2, 100000, "auto", "INPROGRESS"},
+		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 3, 100000, "auto", "INPROGRESS"},
+		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 4, 100000, "auto", "INPROGRESS"},
+		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 5, 100000, "auto", "INPROGRESS"},
+		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 6, 100000, "auto", "INPROGRESS"},
+		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 7, 100000, "auto", "INPROGRESS"},
+		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 8, 100000, "auto", "INPROGRESS"},
+		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 88, 100000, "auto", "INPROGRESS"},
+		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 9, 100000, "auto", "INPROGRESS"},
+	}, ".", 3)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

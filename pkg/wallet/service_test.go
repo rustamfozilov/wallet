@@ -489,41 +489,240 @@ func Test_readFromFileInSliceByte(t *testing.T) {
 }
 
 func Test_creatingLine(t *testing.T) {
-	 var line string
-	 a := &types.Payment{
-		 ID:        "a",
-		 AccountID: 2,
-		 Amount:    200,
-		 Category:  "b",
-		 Status:    "s",
-	 }
+	var line string
+	a := &types.Payment{
+		ID:        "a",
+		AccountID: 2,
+		Amount:    200,
+		Category:  "b",
+		Status:    "s",
+	}
 	got := creatingLine(line, a)
 	want := "a|2|200|b|s\n"
-	if got !=want{
+	if got != want {
 		t.Fatal(got, want)
 	}
 
-
-	for numberFile := 1; numberFile <= 3 ; numberFile++ {
+	for numberFile := 1; numberFile <= 3; numberFile++ {
 		filename := "payments" + strconv.Itoa(numberFile) + ".dump"
 		log.Println(filename)
 	}
 }
+
+//func TestService_HistoryToFiles(t *testing.T) {
+//	var s Service
+//	err := s.HistoryToFiles([]types.Payment{
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 1, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 2, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 3, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 4, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 5, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 6, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 7, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 8, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 88, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 9, 100000, "auto", "INPROGRESS"},
+//	}, ".", 3)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//}
+//
+//func TestService_SumPayments(t *testing.T) {
+//	var s Service
+//	s.payments = []*types.Payment{
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 1, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 2, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 3, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 4, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 5, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 6, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 7, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 8, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 88, 100000, "auto", "INPROGRESS"},
+//		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 9, 100000, "auto", "INPROGRESS"},
+//	}
+//	am := s.SumPayments(1)
+//	if am != 1_000_000 {
+//		t.Fatal(am)
+//	}
+//}
+func BenchmarkService_SumPayments(b *testing.B) {
+	var s Service
+	s.payments = []*types.Payment{
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+	}
+	want := types.Money(300000)
+	for i := 0; i < b.N; i++ {
+		result := s.SumPayments(2)
+		if result != want {
+			b.Fatal(want, result)
+		}
+	}
+
+}
+
+func TestService_Export(t *testing.T) {
+	var s Service
+	s.payments = []*types.Payment{
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+	}
+	s.accounts = []*types.Account{
+		{
+			ID:      1,
+			Phone:   "123",
+			Balance: 0,
+		},
+		{
+			ID:      2,
+			Phone:   "321",
+			Balance: 10,
+		},
+	}
+	err := s.Export(".")
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestService_Import(t *testing.T) {
+	var s Service
+	s.Import(".")
+}
+
+func TestService_ImportFromFile(t *testing.T) {
+	var s Service
+	s.ImportFromFile(".")
+}
+
+func TestService_ExportToFile(t *testing.T) {
+	var s Service
+	s.accounts = []*types.Account{
+		{
+			ID:      1,
+			Phone:   "123",
+			Balance: 0,
+		},
+		{
+			ID:      2,
+			Phone:   "321",
+			Balance: 10,
+		},
+	}
+	s.ExportToFile(".")
+}
+
+func TestService_ExportAccountHistory(t *testing.T) {
+	var s Service
+	s.accounts = []*types.Account{
+		{
+			ID:      1,
+			Phone:   "123",
+			Balance: 0,
+		},
+		{
+			ID:      2,
+			Phone:   "321",
+			Balance: 10,
+		},
+	}
+	s.ExportAccountHistory(1)
+}
+
 func TestService_HistoryToFiles(t *testing.T) {
 	var s Service
-	err := s.HistoryToFiles([]types.Payment{
-		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 1, 100000, "auto", "INPROGRESS"},
-		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 2, 100000, "auto", "INPROGRESS"},
-		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 3, 100000, "auto", "INPROGRESS"},
-		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 4, 100000, "auto", "INPROGRESS"},
-		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 5, 100000, "auto", "INPROGRESS"},
-		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 6, 100000, "auto", "INPROGRESS"},
-		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 7, 100000, "auto", "INPROGRESS"},
-		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 8, 100000, "auto", "INPROGRESS"},
-		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 88, 100000, "auto", "INPROGRESS"},
-		{"c4410f39-9644-49c9-8760-c8ec11920c9a", 9, 100000, "auto", "INPROGRESS"},
-	}, ".", 3)
-	if err != nil {
-		t.Fatal(err)
+	s.payments = []*types.Payment{
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
 	}
+	s.accounts = []*types.Account{
+		{
+			ID:      1,
+			Phone:   "123",
+			Balance: 0,
+		},
+		{
+			ID:      2,
+			Phone:   "321",
+			Balance: 10,
+		},
+	}
+	err := s.Export(".")
+	if err != nil {
+		t.Error(err)
+	}
+	history, _ := s.ExportAccountHistory(1)
+	s.HistoryToFiles(history, ".", 2)
+}
+
+func BenchmarkService_FilterPayments(b *testing.B) {
+	var s Service
+	s.payments = []*types.Payment{
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 2, Amount: 200000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 300000, Category: "auto", Status: "INPROGRESS"},
+	}
+	want := []types.Payment{
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 300000, Category: "auto", Status: "INPROGRESS"},
+	}
+	want1 := []types.Payment{
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 300000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+	}
+	for i := 0; i < b.N; i++ {
+		_, _ = s.FilterPayments(1, 2)
+		_, _ = want1, want
+	}
+
+}
+
+func TestService_FilterPayments(t *testing.T) {
+	var s Service
+	s.payments = []*types.Payment{
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 2, Amount: 200000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 300000, Category: "auto", Status: "INPROGRESS"},
+	}
+	want := []types.Payment{
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 300000, Category: "auto", Status: "INPROGRESS"},
+	}
+	want1 := []types.Payment{
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 300000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+	}
+	_, _ = s.FilterPayments(1, 2)
+	_, _ = want1, want
+}
+
+func TestService_FilterPaymentsByFn(t *testing.T) {
+	var s Service
+	s.payments = []*types.Payment{
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 2, Amount: 200000, Category: "auto", Status: "INPROGRESS"},
+		{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 300000, Category: "auto", Status: "INPROGRESS"},
+	}
+	//want := []types.Payment{
+	//	{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+	//	{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 300000, Category: "auto", Status: "INPROGRESS"},
+	//}
+	//want1 := []types.Payment{
+	//	{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 300000, Category: "auto", Status: "INPROGRESS"},
+	//	{ID: "c4410f39-9644-49c9-8760-c8ec11920c9a", AccountID: 1, Amount: 100000, Category: "auto", Status: "INPROGRESS"},
+	//}
+
+	s.FilterPaymentsByFn(func(payment types.Payment) bool {
+		return true
+	}, 2)
+}
+
+func TestService_SumPaymentsWithProgress(t *testing.T) {
+	var s Service
+	s.SumPaymentsWithProgress()
 }

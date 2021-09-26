@@ -12,6 +12,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var ErrAccountNotFound = errors.New("account not found")
@@ -189,8 +190,7 @@ func (s *Service) PayFromFavorite(favoriteID string) (*types.Payment, error) {
 	return s.Pay(favorite.AccountID, favorite.Amount, favorite.Category)
 }
 
-func (s *
-Service) FindFavoriteByID(favoriteID string) (*types.Favorite, error) {
+func (s *Service) FindFavoriteByID(favoriteID string) (*types.Favorite, error) {
 
 	for _, favorite := range s.favorites {
 		if favorite.ID == favoriteID {
@@ -244,7 +244,7 @@ func (s *Service) ImportFromFile(path string) error {
 	for _, line := range lines {
 
 		fields := strings.Split(line, ";")
-		log.Println(fields)
+		//log.Println(fields)
 		idString := fields[0]
 		id, err := strconv.ParseInt(idString, 10, 64)
 		if err != nil {
@@ -387,10 +387,10 @@ func (s *Service) ImportAccounts(dir string) error {
 		if err != nil {
 			return err
 		}
-		log.Println("line:", line)
+		//log.Println("line:", line)
 		line = line[:len(line)-len("\n")]
 		lines = append(lines, line)
-		log.Println("lines:", lines)
+		//log.Println("lines:", lines)
 	}
 	for _, line := range lines {
 		accFromFile, err := parseAccountLine(line)
@@ -458,10 +458,10 @@ func (s *Service) ImportPayments(dir string) error {
 		if err != nil {
 			return err
 		}
-		log.Println("line:", line)
+		//log.Println("line:", line)
 		line = line[:len(line)-len("\n")]
 		lines = append(lines, line)
-		log.Println("lines:", lines)
+		//log.Println("lines:", lines)
 	}
 	for _, line := range lines {
 		paymentFromFile, err := parsePaymentLine(line)
@@ -480,7 +480,7 @@ func (s *Service) ImportPayments(dir string) error {
 
 func parsePaymentLine(line string) (*types.Payment, error) {
 	fields := strings.Split(line, "|")
-	log.Println("fields:", fields)
+	//log.Println("fields:", fields)
 
 	accountID, err := strconv.ParseInt(fields[1], 10, 64)
 	if err != nil {
@@ -527,10 +527,10 @@ func (s *Service) ImportFavorites(dir string) error {
 		if err != nil {
 			return err
 		}
-		log.Println("line:", line)
+		//log.Println("line:", line)
 		line = line[:len(line)-len("\n")]
 		lines = append(lines, line)
-		log.Println("lines:", lines)
+		//log.Println("lines:", lines)
 	}
 	for _, line := range lines {
 		favoriteFromFile, err := parseFavoriteLine(line)
@@ -550,7 +550,7 @@ func (s *Service) ImportFavorites(dir string) error {
 
 func parseFavoriteLine(line string) (*types.Favorite, error) {
 	fields := strings.Split(line, "|")
-	log.Println("fields fav:", fields)
+	//log.Println("fields fav:", fields)
 	accountID, err := strconv.ParseInt(fields[1], 10, 64)
 	if err != nil {
 		return nil, err
@@ -595,8 +595,8 @@ func (s *Service) HistoryToFiles(payments []types.Payment, dir string, records i
 	if len(payments) == 0 {
 		return nil
 	}
-	log.Println("payments:", payments, "dir:", dir)
-	log.Println("len paymens:", len(payments), "records:", records)
+	//log.Println("payments:", payments, "dir:", dir)
+	//log.Println("len paymens:", len(payments), "records:", records)
 	if len(payments) <= records {
 		var line string
 		for _, payment := range payments {
@@ -622,9 +622,9 @@ func (s *Service) HistoryToFiles(payments []types.Payment, dir string, records i
 			line = creatingLine(line, &payments[i])
 		}
 		payments = payments[records:]
-		log.Println("line2:", line)
+		//log.Println("line2:", line)
 		filename := "payments" + strconv.Itoa(numberFile) + ".dump"
-		log.Println("filename:", filename)
+		//log.Println("filename:", filename)
 		err := ioutil.WriteFile(path.Join(dir, filename), []byte(line), 0666)
 		if err != nil {
 			return err
@@ -635,9 +635,9 @@ func (s *Service) HistoryToFiles(payments []types.Payment, dir string, records i
 	for _, payment := range payments {
 		line = creatingLine(line, &payment)
 	}
-	log.Println("line2:", line)
+	//log.Println("line2:", line)
 	filename := "payments" + strconv.Itoa(fileN) + ".dump"
-	log.Println("filename:", filename)
+	//log.Println("filename:", filename)
 	err := ioutil.WriteFile(path.Join(dir, filename), []byte(line), 0666)
 	if err != nil {
 		return err
@@ -645,53 +645,237 @@ func (s *Service) HistoryToFiles(payments []types.Payment, dir string, records i
 	return nil
 }
 
-func (s *Service) Hf(payments []types.Payment, dir string, records int) error {
-
-	for numberFile := 1; numberFile <= (len(payments)/records)+1; numberFile++ {
-		var line string
-		for i := 0; i < records; i++ {
-			line = creatingLine(line, &payments[i])
+func (s Service) SumPayments(goroutines int) types.Money {
+	if goroutines == 0 || goroutines == 1 {
+		amount := types.Money(0)
+		for _, payment := range s.payments {
+			amount += payment.Amount
 		}
-		payments = payments[records:]
-		log.Println("line2:", line)
-		filename := "payments" + strconv.Itoa(numberFile) + ".dump"
-		log.Println("filename:", filename)
-		err := ioutil.WriteFile(path.Join(dir, filename), []byte(line), 0666)
-		if err != nil {
-			return err
-		}
+		return amount
+	}
+	if goroutines > len(s.payments) {
+		goroutines = len(s.payments) / 5
+	}
+	howMuchCut := len(s.payments) / goroutines
+	lost := len(s.payments) % goroutines
+	if lost != 0 {
+		howMuchCut++
 	}
 
-	var index int
-	numberFile := 1
-	for numberFile = 1; numberFile <= len(payments)/records; numberFile++ {
-		var line string
-		for i := 0; i < records; i++ {
-			payment := payments[index]
-			line = creatingLine(line, &payment)
-			index++
+	var mutex sync.Mutex
+	amount := types.Money(0)
 
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	for i := 0; i < goroutines; i++ {
+		cutedPayments := make([]*types.Payment, 0)
+		if howMuchCut > len(s.payments) {
+			howMuchCut = len(s.payments)
 		}
-		log.Println("line2:", line)
-		filename := "payments" + strconv.Itoa(numberFile) + ".dump"
-		log.Println("filename:", filename)
-		err := ioutil.WriteFile(path.Join(dir, filename), []byte(line), 0666)
-		if err != nil {
-			return err
+		ss := s.payments[:howMuchCut]
+		for _, payment := range ss {
+			cutedPayments = append(cutedPayments, payment)
 		}
-		numberFile++
-	}
-	var line string
-	for i := 0; i < records; i++ {
-		payment := payments[index]
-		line = creatingLine(line, &payment)
-		index++
-	}
-	filename := "payments" + strconv.Itoa(numberFile) + ".dump"
-	err := ioutil.WriteFile(path.Join(dir, filename), []byte(line), 0666)
-	if err != nil {
-		return err
-	}
-	return nil
+		go func([]*types.Payment) {
+			defer wg.Done()
+			val := types.Money(0)
+			for _, payment := range cutedPayments {
+				val += payment.Amount
+			}
+			mutex.Lock()
+			amount += val
+			mutex.Unlock()
+		}(cutedPayments)
 
+		s.payments = s.payments[howMuchCut:]
+	}
+	wg.Wait()
+	return amount
+}
+
+func (s Service) FilterPayments(accountID int64, goroutines int) ([]types.Payment, error) {
+
+	//log.Println(s.payments)
+	//log.Println(accountID, goroutines)
+	exists := s.accountExists(accountID)
+	if exists == 0 {
+		return nil, ErrAccountNotFound
+	}
+	filteredPayments := make([]types.Payment, 0)
+
+	if goroutines == 0 || goroutines == 1 {
+		for _, payment := range s.payments {
+			if payment.AccountID == accountID {
+				filteredPayments = append(filteredPayments, *payment)
+			}
+		}
+		if len(filteredPayments) == 0 {
+			return nil, ErrPaymentNotFound
+		}
+		return filteredPayments, nil
+	}
+
+	if goroutines > len(s.payments) {
+		goroutines = 2
+	}
+
+	howMuchCut := len(s.payments) / goroutines
+	lost := len(s.payments) % goroutines
+	if lost != 0 {
+		howMuchCut++
+	}
+
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	for i := 0; i < goroutines; i++ {
+		cutedPayments := make([]types.Payment, 0)
+		if len(s.payments) < howMuchCut {
+			howMuchCut = len(s.payments)
+		}
+		cut := s.payments[:howMuchCut]
+		for _, payment := range cut {
+			cutedPayments = append(cutedPayments, *payment)
+		}
+		go func(cp []types.Payment) {
+			defer wg.Done()
+			filter := make([]types.Payment, 0)
+			for _, payment := range cp {
+				if payment.AccountID == accountID {
+					filter = append(filter, payment)
+				}
+			}
+			mu.Lock()
+			for _, payment := range filter {
+				filteredPayments = append(filteredPayments, payment)
+			}
+			mu.Unlock()
+
+		}(cutedPayments)
+		s.payments = s.payments[howMuchCut:]
+	}
+	wg.Wait()
+	if len(filteredPayments) == 0 {
+		return nil, ErrPaymentNotFound
+	}
+	return filteredPayments, nil
+}
+
+func (s Service) FilterPaymentsByFn(filter func(payment types.Payment) bool,
+	goroutines int,
+) ([]types.Payment, error) {
+
+	//log.Println(s.payments)
+	filteredPayments := make([]types.Payment, 0)
+
+	if goroutines == 0 || goroutines == 1 {
+		for _, payment := range s.payments {
+			if filter(*payment) {
+				filteredPayments = append(filteredPayments, *payment)
+			}
+		}
+		if len(filteredPayments) == 0 {
+			return nil, ErrPaymentNotFound
+		}
+		return filteredPayments, nil
+	}
+
+	if goroutines > len(s.payments) {
+		goroutines = 2
+	}
+
+	howMuchCut := len(s.payments) / goroutines
+	lost := len(s.payments) % goroutines
+	if lost != 0 {
+		howMuchCut++
+	}
+
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	for i := 0; i < goroutines; i++ {
+		cutedPayments := make([]types.Payment, 0)
+		if len(s.payments) < howMuchCut {
+			howMuchCut = len(s.payments)
+		}
+		cut := s.payments[:howMuchCut]
+		for _, payment := range cut {
+			cutedPayments = append(cutedPayments, *payment)
+		}
+		go func(cp []types.Payment) {
+			defer wg.Done()
+			filtered := make([]types.Payment, 0)
+			for _, payment := range cp {
+				if filter(payment) {
+					filtered = append(filtered, payment)
+				}
+			}
+			mu.Lock()
+			for _, payment := range filtered {
+				filteredPayments = append(filteredPayments, payment)
+			}
+			mu.Unlock()
+
+		}(cutedPayments)
+		s.payments = s.payments[howMuchCut:]
+	}
+	wg.Wait()
+	if len(filteredPayments) == 0 {
+		return nil, ErrPaymentNotFound
+	}
+	return filteredPayments, nil
+}
+
+type Progress struct {
+	Part   int
+	Result types.Money
+}
+
+func (s Service) SumPaymentsWithProgress() <-chan Progress {
+	if len(s.payments) == 0 {
+		ch := make(chan Progress, 1)
+		close(ch)
+		return ch
+	}
+	size := 100_000
+	if size > len(s.payments) {
+		size = len(s.payments)
+	}
+	part := len(s.payments) / size
+	if len(s.payments)%size != 0 {
+		part += 1
+	}
+	if part <= 0 {
+		part = 1
+	}
+
+	ch := make(chan Progress, 1)
+	var wg sync.WaitGroup
+	wg.Add(part)
+
+	for i := 0; i < part; i++ {
+		i := i
+		go func(payments []*types.Payment) {
+			defer wg.Done()
+			var amount types.Money
+
+			for _, payment := range payments {
+				amount += payment.Amount
+			}
+			ch <- Progress{
+				Part:   i,
+				Result: amount,
+			}
+		}(s.payments[:size])
+
+		s.payments = s.payments[size:]
+		if size > len(s.payments) {
+			size = len(s.payments)
+		}
+	}
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+	return ch
 }
